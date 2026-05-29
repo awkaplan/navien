@@ -340,9 +340,16 @@ void NavienBase::send_scheduled_recirculation_off_cmd() {
           this->pending_dhw_temp_c_ = NAN;
         }
       }
-      this->climate->target_temperature = std::isnan(this->pending_dhw_temp_c_)
-          ? this->state.water.dhw_set_temp
-          : this->pending_dhw_temp_c_;
+      {
+        float raw_c = std::isnan(this->pending_dhw_temp_c_)
+            ? this->state.water.dhw_set_temp
+            : this->pending_dhw_temp_c_;
+        // Navien setpoints are multiples of 5°F; round to nearest 5°F to absorb
+        // the C↔F conversion error (e.g. 120°F encodes as 48.5°C = 119.3°F).
+        float raw_f = raw_c * 9.0f / 5.0f + 32.0f;
+        float rounded_f = roundf(raw_f / 5.0f) * 5.0f;
+        this->climate->target_temperature = (rounded_f - 32.0f) * 5.0f / 9.0f;
+      }
       this->climate->publish_state();
     }
 #endif
