@@ -278,6 +278,12 @@ namespace navien {
     esphome::uart::UARTComponent* uart_;
     uint8_t src_;
     bool is_rt;
+
+    // Holds the expected setpoint after a set-temp command until the heater
+    // confirms it. Prevents the climate entity from reverting to the old value
+    // while the command is in-flight.
+    float pending_dhw_temp_c_ = NAN;
+    uint32_t pending_dhw_temp_start_ms_ = 0;
   };
 
   class Navien : public PollingComponent, public NavienBase {

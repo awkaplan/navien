@@ -187,7 +187,7 @@ protected:
    * @param len - the length of buffer
    * @param tries - number of times to send the command
    */
-  void send_cmd(const uint8_t * buffer, uint8_t len, uint8_t tries = 2);
+  void send_cmd(const uint8_t * buffer, uint8_t len, uint8_t tries = 10);
   void on_error();
   
 protected:

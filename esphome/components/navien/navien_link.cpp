@@ -245,6 +245,9 @@ void NavienLink::send_dhw_set_temp_cmd(float temp){
   cmd[9] = temp * 2 + 0.5;
   cmd[18] = NavienLink::checksum(cmd, sizeof(DHW_SET_TEMP_CMD_TEMPLATE) - 1, CHECKSUM_SEED_62);
 
+  // Clear any queued commands so stale temperature commands from prior
+  // attempts don't get sent after this new one.
+  this->cmd_buffer.clear();
   NavienLink::print_buffer(cmd, sizeof(DHW_SET_TEMP_CMD_TEMPLATE));
   this->send_cmd(cmd, sizeof(DHW_SET_TEMP_CMD_TEMPLATE));
 }

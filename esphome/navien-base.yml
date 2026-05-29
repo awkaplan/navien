@@ -10,6 +10,7 @@ substitutions:
   platform: esp8266
   board: d1_mini
   external_component_source: components
+  visual_max_temperature: "120F"
  
 
 esphome:

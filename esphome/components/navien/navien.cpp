@@ -68,7 +68,14 @@ void NavienBase::send_hot_button_cmd() {
   if (navien_link_) navien_link_->send_hot_button_cmd();
 }
 void NavienBase::send_dhw_set_temp_cmd(float temp) {
-  if (navien_link_) navien_link_->send_dhw_set_temp_cmd(temp);
+  if (navien_link_) {
+    navien_link_->send_dhw_set_temp_cmd(temp);
+    // Record what the heater should report after it accepts the command
+    // (same rounding the protocol encoding applies)
+    uint8_t encoded = (uint8_t)(temp * 2.0f + 0.5f);
+    pending_dhw_temp_c_ = encoded / 2.0f;
+    pending_dhw_temp_start_ms_ = millis();
+  }
 }
 void NavienBase::send_scheduled_recirculation_on_cmd() {
   if (navien_link_) navien_link_->send_scheduled_recirculation_on_cmd();
@@ -322,7 +329,20 @@ void NavienBase::send_scheduled_recirculation_off_cmd() {
       }
 
       this->climate->current_temperature = this->state.water.outlet_temp;
-      this->climate->target_temperature = this->state.water.dhw_set_temp;
+
+      // Hold the pending setpoint in the entity until the heater confirms it
+      // or 10 seconds elapse. Without this, the entity reverts to the old
+      // value on every status packet while the command is in-flight.
+      if (!std::isnan(this->pending_dhw_temp_c_)) {
+        bool confirmed = std::abs(this->state.water.dhw_set_temp - this->pending_dhw_temp_c_) < 0.1f;
+        bool timed_out = millis() - this->pending_dhw_temp_start_ms_ > 10000;
+        if (confirmed || timed_out) {
+          this->pending_dhw_temp_c_ = NAN;
+        }
+      }
+      this->climate->target_temperature = std::isnan(this->pending_dhw_temp_c_)
+          ? this->state.water.dhw_set_temp
+          : this->pending_dhw_temp_c_;
       this->climate->publish_state();
     }
 #endif
